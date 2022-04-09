@@ -1,3 +1,6 @@
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
@@ -90,13 +93,16 @@ namespace {
         static bool isRequired() { return true; }
     };
 
-    llvm::PassPluginLibraryInfo getHelloWorldPluginInfo() {
-        return {LLVM_PLUGIN_API_VERSION, "CFGPass", LLVM_VERSION_STRING,
-                [](PassBuilder &PB) {
+    
+
+};
+llvm::PassPluginLibraryInfo getHelloWorldPluginInfo() 
+        return {LLVM_PLUGIN_API_VERSION, "CFGPass", LLVM_VERSION_STRING
+                [](PassBuilder &PB) 
                     PB.registerPipelineParsingCallback(
                         [](StringRef Name, FunctionPassManager &FPM,
                         ArrayRef<PassBuilder::PipelineElement>) {
-                        if (Name == "CFGPass") {
+                      if (Name == "CFGPass") {
                             FPM.addPass(CFGPass());
                             return true;
                         }
@@ -104,7 +110,6 @@ namespace {
                         });
                 }};
     }
-
     // This is the core interface for pass plugins. It guarantees that 'opt' will
     // be able to recognize HelloWorld when added to the pass pipeline on the
     // command line, i.e. via '-passes=hello-world'
@@ -112,5 +117,3 @@ namespace {
     llvmGetPassPluginInfo() {
     return getHelloWorldPluginInfo();
     }
-
-};
