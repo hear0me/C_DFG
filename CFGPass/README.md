@@ -1,4 +1,4 @@
-this pass is used on llvm-13
+this pass is based on llvm-13
 
 you can build it like this:
 ```
