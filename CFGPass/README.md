@@ -11,17 +11,17 @@ make
 
 after these commends you will get a file named libCFGPass.so
 
-then you can use clang to translate it to IR:
+then you can use clang to translate test.c to IR:
 ```
 cd ../test
 clang-13 -O0 -S -emit-llvm test.c -o test.ll
 ```
 
-now we can translate the IR by CFGPass:
+now we can analyse the IR by CFGPass:
 ```
 opt-13 -load-pass-plugin ../build/libCFGPass.so -passes=CFGPass -disable-output test.ll
 ```
-look at the test direction, there are some .dot file, let translate ff3.dot to .png:
+look at the test directory, there are some .dot file, let translate ff3.dot to .png:
 ```
 dot -Tpng ff3.dot -o ff3.png
 ```
