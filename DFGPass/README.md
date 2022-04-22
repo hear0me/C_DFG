@@ -7,11 +7,13 @@ This is a dynamic LLVM Pass which is to give the basicblocks id and profile the 
 ### Build the pass by doing that:
 - go to project folder by `cd yourdirectory/DFGPass`
 - you can build the pass by
-`export LLVM_DIR=<installation/dir/of/llvm/13>`
-`mkdir build`
-`cd build`
-`cmake -DLT_LLVM_INSTALL_DIR=$LLVM_DIR <source/dir/llvm/CFGPass>`
-`make`
+```
+export LLVM_DIR=<installation/dir/of/llvm/13>
+mkdir build
+cd build
+cmake -DLT_LLVM_INSTALL_DIR=$LLVM_DIR <source/dir/llvm/CFGPass>
+make
+```
 
 ### execute by the Pass
 - go to test folder by`cd ../test`
