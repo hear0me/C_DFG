@@ -11,7 +11,7 @@ This is a dynamic LLVM Pass which is to give the basicblocks id and profile the 
 export LLVM_DIR=<installation/dir/of/llvm/13>
 mkdir build
 cd build
-cmake -DLT_LLVM_INSTALL_DIR=$LLVM_DIR <source/dir/llvm/CFGPass>
+cmake -DLT_LLVM_INSTALL_DIR=$LLVM_DIR <source/dir/llvm/DFGPass>
 make
 ```
 
