@@ -13,6 +13,10 @@
 #include <list>
 #include <llvm/IR/Dominators.h>
 #include <llvm/ADT/DepthFirstIterator.h>
+#include <llvm/ADT/StringMap.h>
+//#include <llvm/IR/ValueMap.h>
+#include <map>
+//#include <string.h>
 using namespace llvm;
 namespace
 {
@@ -20,7 +24,7 @@ namespace
 	struct DFGPass : PassInfoMixin<DFGPass>
 	{
 	public:
-		// the basic node pair
+		// the basic node pair 1:normal 2:load 3:store 
 		typedef std::pair<Value *, StringRef> node;
 		// the basic edge pair
 		typedef std::pair<node, node> edge;
@@ -28,16 +32,18 @@ namespace
 		typedef std::list<node> node_list;
 		// a list of edge
 		typedef std::list<edge> edge_list;
+
+		
 		static char ID;
 
 		edge_list inst_edges; // storage the queue of instruction
 		edge_list edges;	  // storage the flow edges
-		edge_list def_edges;  // anti dependence
+		edge_list output_edges;  // output dependence
 		edge_list loop_edges; // loop dependence
 		node_list call_nodes; // call nodes
 		node_list nodes;	  // normal nodes
 		int num = 0;
-
+		//ValueMap<Value *, int> VMap;
 		// int tes=0;
 
 		// change Instruction to string
@@ -50,8 +56,11 @@ namespace
 		}
 
 		// get value's name
+		//int getValueID(Value *v) {};
+		
 		StringRef getValueName(Value *v)
 		{
+		
 			std::string temp_result = "val";
 			if (v->getName().empty())
 			{
@@ -63,25 +72,27 @@ namespace
 				temp_result = v->getName().str();
 			}
 			StringRef result(temp_result);
-			// errs() << result;
+			errs() << result << "\n";
 			return result;
+			
 		}
 		// Main entry point, takes IR unit to run the pass on (&F) and the
 		// corresponding pass manager (to be queried if need be)
 		PreservedAnalyses run(Function &F, FunctionAnalysisManager &)
 		{
+			std::map<Value*, StringRef> callmap;
 			std::error_code error;
 			enum sys::fs::OpenFlags F_None;
 			StringRef fileName(F.getName().str() + ".dot");
 			raw_fd_ostream file(fileName, error, F_None);
 
-			errs() << "Hello\n";
+			errs() << "Hello\n" << fileName<< "\n";
 
 			edges.clear();
 			nodes.clear();
 			call_nodes.clear();
 			inst_edges.clear();
-			def_edges.clear();
+			output_edges.clear();
 			loop_edges.clear();
 
 			// extract loop dependence from every loop of the function
@@ -128,7 +139,7 @@ namespace
 						Value *storeValPtr = sinst->getPointerOperand();
 						Value *storeVal = sinst->getValueOperand();
 						edges.push_back(edge(node(storeVal, getValueName(storeVal)), node(curII, getValueName(curII))));
-						def_edges.push_back(edge(node(curII, getValueName(curII)), node(storeValPtr, getValueName(storeValPtr))));
+						output_edges.push_back(edge(node(storeValPtr, getValueName(storeValPtr)),node(curII, getValueName(curII))));
 						break;
 					}
 					default:
@@ -151,6 +162,19 @@ namespace
 					if (CI)
 					{
 						call_nodes.push_back(node(curII, getValueName(curII)));
+						StringRef name;
+						CallInst *CallI = dyn_cast<CallInst>(&*II);
+						Function *fun = CallI->getCalledFunction();
+						if(fun) {
+							name = fun->getName();
+							//errs() << "funcname" << name << "\n";
+						}
+						else {
+							name = "nocall";
+						}
+
+						
+						callmap[curII] = name;
 						// errs() <<"call" << tes++ << curII->getOpcode()<<"size"<<call_nodes.size()<<"\n";
 					}
 					else
@@ -179,12 +203,18 @@ namespace
 			// write to file
 			for (node_list::iterator node = nodes.begin(), node_end = nodes.end(); node != node_end; ++node)
 			{
-				file << "\tNode" << node->first << "[shape=record, label=\"" << *(node->first) << "\"];\n";
+				file << "\tNode" << node->first << "[shape=record, label=\"" << *(node->first) << "\"";
+				errs()<<getValueName(node->first);
+				if(node->second == "LoadInst") file<<", fontcolor=aqua";
+				file<<"];\n";
 			}
 
 			for (node_list::iterator node = call_nodes.begin(), node_end = call_nodes.end(); node != node_end; ++node)
 			{
 				file << "\tNode" << node->first << "[shape=record, label=\"" << *(node->first) << "\", color=blue];\n";
+				
+				file << "\tCallNode" << node->first << "[shape=record, label=\"" << callmap[node->first]<< "\", color=blue];\n";
+				file << "\tNode" << node->first << " -> CallNode" << node->first << "[label=\"[call_info]\", color=blue];"<< "\n";
 			}
 
 			for (edge_list::iterator edge = inst_edges.begin(), edge_end = inst_edges.end(); edge != edge_end; ++edge)
@@ -193,18 +223,18 @@ namespace
 			}
 
 			// special edges
-			file << "edge [color=red]"<< "\n";
+			//file << "edge [color=red]"<< "\n";
 			for (edge_list::iterator edge = loop_edges.begin(), edge_end = loop_edges.end(); edge != edge_end; ++edge)
 			{
-				file << "\tNode" << edge->first.first << " -> Node" << edge->second.first << "[label=\"[loop_dep]\"];"<< "\n";
+				file << "\tNode" << edge->first.first << " -> Node" << edge->second.first << "[label=\"[loop_dep]\", color=green];"<< "\n";
 			}
-			for (edge_list::iterator edge = def_edges.begin(), edge_end = def_edges.end(); edge != edge_end; ++edge)
+			for (edge_list::iterator edge = output_edges.begin(), edge_end = output_edges.end(); edge != edge_end; ++edge)
 			{
-				file << "\tNode" << edge->first.first << " -> Node" << edge->second.first << "[label=\"[anti_dep]\"];"<< "\n";
+				file << "\tNode" << edge->first.first << " -> Node" << edge->second.first << "[label=\"[output_dep]\", color=yellow];"<< "\n";
 			}
 			for (edge_list::iterator edge = edges.begin(), edge_end = edges.end(); edge != edge_end; ++edge)
 			{
-				file << "\tNode" << edge->first.first << " -> Node" << edge->second.first << "[label=\"[flow_dep]\"];"<< "\n";
+				file << "\tNode" << edge->first.first << " -> Node" << edge->second.first << "[label=\"[flow_dep]\", color=red];"<< "\n";
 			}
 			errs() << "Write Done\n";
 			file << "}\n";
